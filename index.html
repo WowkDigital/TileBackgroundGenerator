@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tile Background Generator - Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        .bg-checkerboard {
+            background-color: #0f172a;
+            background-image:
+                linear-gradient(45deg, #1e293b 25%, transparent 25%, transparent 75%, #1e293b 75%, #1e293b),
+                linear-gradient(45deg, #1e293b 25%, transparent 25%, transparent 75%, #1e293b 75%, #1e293b);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+        }
+
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px; width: 16px;
+            border-radius: 50%; background: #6366f1;
+            cursor: pointer; margin-top: -6px;
+            box-shadow: 0 0 0 2px #1e293b;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px; cursor: pointer;
+            background: #334155; border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 h-screen w-screen overflow-hidden flex font-sans">
+
+    <!-- Sidebar -->
+    <aside class="w-80 bg-slate-900 border-r border-slate-800 flex flex-col h-full z-10 shadow-2xl shrink-0 overflow-hidden">
+        <div class="p-5 border-b border-slate-800 flex items-center gap-3 bg-slate-900/50">
+            <div class="bg-indigo-500/20 p-2 rounded-lg text-indigo-400">
+                <i data-lucide="layers-3" class="w-5 h-5"></i>
+            </div>
+            <h1 class="font-bold text-base tracking-tight">TileGen <span class="text-indigo-500">Pro</span></h1>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-5 space-y-6">
+            <!-- Upload -->
+            <div class="space-y-2">
+                <div id="dropzone" class="border-2 border-dashed border-slate-800 rounded-xl p-4 text-center cursor-pointer hover:bg-slate-800/50 hover:border-indigo-500/50 transition-all group relative">
+                    <i data-lucide="image-plus" class="w-6 h-6 mx-auto text-slate-500 mb-2 group-hover:text-indigo-400"></i>
+                    <p class="text-xs font-medium text-slate-400">Upload PNG/WebP</p>
+                    <input type="file" id="file-input" accept="image/png,image/webp" class="absolute inset-0 opacity-0 cursor-pointer">
+                </div>
+            </div>
+
+            <hr class="border-slate-800">
+
+            <!-- Global Settings -->
+            <div class="space-y-4">
+                <div class="space-y-2">
+                    <label class="text-[11px] font-bold uppercase text-slate-500 tracking-wider">Global Settings</label>
+                    <select id="tile-size" class="w-full bg-slate-950 border border-slate-800 text-xs rounded-lg p-2.5 outline-none focus:border-indigo-500">
+                        <option value="256">256 x 256 px</option>
+                        <option value="512" selected>512 x 512 px</option>
+                        <option value="1024">1024 x 1024 px</option>
+                    </select>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="flex justify-between text-[11px] font-medium">
+                        <span>Scale</span>
+                        <span id="scale-val" class="text-indigo-400">50%</span>
+                    </div>
+                    <input type="range" id="scale-slider" min="5" max="150" value="50" class="w-full">
+                </div>
+
+                <div class="space-y-2">
+                    <div class="flex justify-between text-[11px] font-medium">
+                        <span>Base Rotation</span>
+                        <span id="rotate-val" class="text-indigo-400">0°</span>
+                    </div>
+                    <input type="range" id="rotate-slider" min="0" max="360" value="0" class="w-full">
+                </div>
+            </div>
+
+            <hr class="border-slate-800">
+
+            <!-- Pattern Type -->
+            <div class="space-y-3">
+                <label class="text-[11px] font-bold uppercase text-slate-500 tracking-wider">Pattern Type</label>
+                <div class="grid grid-cols-2 gap-2" id="pattern-selector">
+                    <button data-val="normal" class="pattern-btn active p-2 bg-slate-950 border border-slate-800 rounded-lg text-[10px] font-bold flex flex-col items-center gap-1 hover:border-slate-600 transition-all">
+                        <i data-lucide="square" class="w-4 h-4"></i> Normal
+                    </button>
+                    <button data-val="mirror2x2" class="pattern-btn p-2 bg-slate-950 border border-slate-800 rounded-lg text-[10px] font-bold flex flex-col items-center gap-1 hover:border-slate-600 transition-all">
+                        <i data-lucide="copy" class="w-4 h-4"></i> Mirror 2x2
+                    </button>
+                    <button data-val="diagonal" class="pattern-btn p-2 bg-slate-950 border border-slate-800 rounded-lg text-[10px] font-bold flex flex-col items-center gap-1 hover:border-slate-600 transition-all">
+                        <i data-lucide="split" class="w-4 h-4"></i> Diagonal
+                    </button>
+                    <button data-val="scatter" class="pattern-btn p-2 bg-slate-950 border border-slate-800 rounded-lg text-[10px] font-bold flex flex-col items-center gap-1 hover:border-slate-600 transition-all">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i> Chaos
+                    </button>
+                    <button data-val="custom2x2" class="pattern-btn p-2 bg-slate-950 border border-slate-800 rounded-lg text-[10px] font-bold flex flex-col items-center gap-1 hover:border-slate-600 transition-all col-span-2">
+                        <i data-lucide="settings-2" class="w-4 h-4"></i> Custom 2x2 (Pro)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Contextual Settings -->
+            <div id="context-settings" class="space-y-4 pt-2 border-t border-slate-800 hidden">
+                <!-- Content injected via JS -->
+            </div>
+        </div>
+
+        <div class="p-5 border-t border-slate-800 bg-slate-900/80">
+            <button id="download-btn" disabled class="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 disabled:opacity-30">
+                <i data-lucide="download" class="w-4 h-4"></i> Download .png
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Viewport -->
+    <main class="flex-1 relative bg-checkerboard flex items-center justify-center overflow-hidden">
+        <div id="preview-bg" class="absolute inset-0 w-full h-full opacity-100 transition-opacity duration-500" style="background-repeat: repeat;"></div>
+        <div id="grid-overlay" class="absolute inset-0 w-full h-full pointer-events-none opacity-20 hidden" style="background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px);"></div>
+        
+        <div class="absolute top-5 left-5 z-20 flex gap-2">
+            <button id="toggle-grid" title="Toggle Grid Overlay" class="bg-slate-900/80 backdrop-blur border border-slate-700 p-2 rounded-lg text-slate-300 hover:text-white">
+                <i data-lucide="grid-3x3" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Float Preview -->
+        <div class="absolute bottom-5 right-5 bg-slate-900/90 border border-slate-700 p-3 rounded-2xl shadow-2xl z-20 w-40">
+            <p class="text-[9px] font-bold uppercase text-slate-500 mb-2">Single Tile</p>
+            <div class="aspect-square bg-checkerboard rounded-lg border border-slate-800 overflow-hidden shadow-inner">
+                <img id="tile-preview" class="w-full h-full object-contain" alt="Tile Preview">
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+
+            const state = {
+                sourceImg: null,
+                tileSize: 512,
+                scale: 0.5,
+                baseRotation: 0,
+                pattern: 'normal',
+                showGrid: false,
+                // Chaos settings
+                scatterCount: 15,
+                scatterSeed: Math.random(),
+                // Custom 2x2 settings
+                custom: [
+                    { rot: 0, scale: 1, flipX: false, flipY: false }, // TL
+                    { rot: 90, scale: 1, flipX: false, flipY: false }, // TR
+                    { rot: 270, scale: 1, flipX: false, flipY: false }, // BL
+                    { rot: 180, scale: 1, flipX: false, flipY: false }  // BR
+                ]
+            };
+
+            const els = {
+                fileInput: document.getElementById('file-input'),
+                tileSize: document.getElementById('tile-size'),
+                scaleSlider: document.getElementById('scale-slider'),
+                rotateSlider: document.getElementById('rotate-slider'),
+                patternBtns: document.querySelectorAll('.pattern-btn'),
+                contextSettings: document.getElementById('context-settings'),
+                previewBg: document.getElementById('preview-bg'),
+                tilePreview: document.getElementById('tile-preview'),
+                grid: document.getElementById('grid-overlay'),
+                downloadBtn: document.getElementById('download-btn')
+            };
+
+            // Helpers
+            const updateUI = () => {
+                document.getElementById('scale-val').textContent = `${Math.round(state.scale * 100)}%`;
+                document.getElementById('rotate-val').textContent = `${state.baseRotation}°`;
+                els.grid.classList.toggle('hidden', !state.showGrid);
+                els.grid.style.backgroundSize = `${state.tileSize}px ${state.tileSize}px`;
+                renderContextSettings();
+                generate();
+            };
+
+            const renderContextSettings = () => {
+                els.contextSettings.innerHTML = '';
+                els.contextSettings.classList.add('hidden');
+
+                if (state.pattern === 'scatter') {
+                    els.contextSettings.classList.remove('hidden');
+                    els.contextSettings.innerHTML = `
+                        <div class="space-y-3">
+                            <div class="flex justify-between text-[11px] font-bold">
+                                <span>Element Count</span>
+                                <span class="text-indigo-400">${state.scatterCount}</span>
+                            </div>
+                            <input type="range" id="scatter-count" min="1" max="50" value="${state.scatterCount}" class="w-full">
+                            <button id="re-roll" class="w-full bg-slate-800 hover:bg-slate-700 py-2 rounded-lg text-[10px] font-bold flex items-center justify-center gap-2">
+                                <i data-lucide="refresh-cw" class="w-3 h-3"></i> Randomize Layout
+                            </button>
+                        </div>
+                    `;
+                    document.getElementById('scatter-count').oninput = (e) => {
+                        state.scatterCount = parseInt(e.target.value);
+                        updateUI();
+                    };
+                    document.getElementById('re-roll').onclick = () => {
+                        state.scatterSeed = Math.random();
+                        updateUI();
+                    };
+                } else if (state.pattern === 'custom2x2') {
+                    els.contextSettings.classList.remove('hidden');
+                    let html = `<div class="grid grid-cols-2 gap-2">`;
+                    state.custom.forEach((q, i) => {
+                        html += `
+                            <div class="p-2 bg-slate-950 border border-slate-800 rounded-lg space-y-2">
+                                <p class="text-[9px] font-bold text-slate-500 uppercase">Quadrant ${i+1}</p>
+                                <div class="flex gap-1">
+                                    <button class="t-flip p-1 bg-slate-800 rounded ${q.flipX?'text-indigo-400':''}" title="Flip X" data-idx="${i}" data-type="flipX"><i data-lucide="flip-horizontal" class="w-3 h-3"></i></button>
+                                    <button class="t-flip p-1 bg-slate-800 rounded ${q.flipY?'text-indigo-400':''}" title="Flip Y" data-idx="${i}" data-type="flipY"><i data-lucide="flip-vertical" class="w-3 h-3"></i></button>
+                                </div>
+                                <input type="range" class="t-rot w-full" data-idx="${i}" min="0" max="360" value="${q.rot}">
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                    els.contextSettings.innerHTML = html;
+                    
+                    document.querySelectorAll('.t-flip').forEach(b => b.onclick = (e) => {
+                        const idx = b.dataset.idx;
+                        const type = b.dataset.type;
+                        state.custom[idx][type] = !state.custom[idx][type];
+                        updateUI();
+                    });
+                    document.querySelectorAll('.t-rot').forEach(i => i.oninput = (e) => {
+                        state.custom[i.dataset.idx].rot = parseInt(e.target.value);
+                        updateUI();
+                    });
+                }
+                lucide.createIcons();
+            };
+
+            const drawGraphic = (ctx, x, y, w, h, opts = {}) => {
+                const { rot = 0, flipX = false, flipY = false, localScale = 1 } = opts;
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate((state.baseRotation + rot) * Math.PI / 180);
+                ctx.scale(flipX ? -1 : 1, flipY ? -1 : 1);
+                ctx.drawImage(state.sourceImg, - (w * localScale) / 2, - (h * localScale) / 2, w * localScale, h * localScale);
+                ctx.restore();
+            };
+
+            const generate = () => {
+                if (!state.sourceImg) return;
+                const canvas = document.createElement('canvas');
+                canvas.width = state.tileSize;
+                canvas.height = state.tileSize;
+                const ctx = canvas.getContext('2d');
+                const s = state.tileSize;
+                
+                const ratio = state.sourceImg.width / state.sourceImg.height;
+                const baseW = s * state.scale;
+                const baseH = baseW / ratio;
+
+                ctx.clearRect(0, 0, s, s);
+
+                if (state.pattern === 'normal') {
+                    drawGraphic(ctx, s/2, s/2, baseW, baseH);
+                } else if (state.pattern === 'mirror2x2') {
+                    const qW = baseW/2, qH = baseH/2;
+                    drawGraphic(ctx, s/4, s/4, qW, qH);
+                    drawGraphic(ctx, 3*s/4, s/4, qW, qH, { flipX: true });
+                    drawGraphic(ctx, s/4, 3*s/4, qW, qH, { flipY: true });
+                    drawGraphic(ctx, 3*s/4, 3*s/4, qW, qH, { flipX: true, flipY: true });
+                } else if (state.pattern === 'diagonal') {
+                    const points = [[0.5,0.5], [0,0], [1,0], [0,1], [1,1]];
+                    points.forEach(p => drawGraphic(ctx, p[0]*s, p[1]*s, baseW, baseH));
+                } else if (state.pattern === 'scatter') {
+                    // Seeded pseudorandom generator for layout stability
+                    let seed = state.scatterSeed;
+                    const random = () => {
+                        seed = (seed * 16807) % 2147483647;
+                        return (seed - 1) / 2147483646;
+                    };
+                    for(let i=0; i<state.scatterCount; i++) {
+                        const px = random(), py = random(), pr = random() * 360;
+                        drawGraphic(ctx, px*s, py*s, baseW*0.5, baseH*0.5, { rot: pr });
+                        // Wrapping for seamless tiling
+                        if(px < 0.2) drawGraphic(ctx, (px+1)*s, py*s, baseW*0.5, baseH*0.5, { rot: pr });
+                        if(px > 0.8) drawGraphic(ctx, (px-1)*s, py*s, baseW*0.5, baseH*0.5, { rot: pr });
+                        if(py < 0.2) drawGraphic(ctx, px*s, (py+1)*s, baseW*0.5, baseH*0.5, { rot: pr });
+                        if(py > 0.8) drawGraphic(ctx, px*s, (py-1)*s, baseW*0.5, baseH*0.5, { rot: pr });
+                    }
+                } else if (state.pattern === 'custom2x2') {
+                    const coords = [[s/4, s/4], [3*s/4, s/4], [s/4, 3*s/4], [3*s/4, 3*s/4]];
+                    state.custom.forEach((q, i) => {
+                        drawGraphic(ctx, coords[i][0], coords[i][1], baseW/2, baseH/2, { 
+                            rot: q.rot, flipX: q.flipX, flipY: q.flipY 
+                        });
+                    });
+                }
+
+                const url = canvas.toDataURL('image/png');
+                els.tilePreview.src = url;
+                els.previewBg.style.backgroundImage = `url(${url})`;
+                els.previewBg.style.backgroundSize = `${s}px ${s}px`;
+                els.downloadBtn.disabled = false;
+            };
+
+            // Event listeners
+            els.fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const img = new Image();
+                    img.onload = () => { state.sourceImg = img; updateUI(); };
+                    img.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+            };
+
+            els.tileSize.onchange = (e) => { state.tileSize = parseInt(e.target.value); updateUI(); };
+            els.scaleSlider.oninput = (e) => { state.scale = e.target.value / 100; updateUI(); };
+            els.rotateSlider.oninput = (e) => { state.baseRotation = parseInt(e.target.value); updateUI(); };
+            
+            els.patternBtns.forEach(btn => btn.onclick = () => {
+                els.patternBtns.forEach(b => b.classList.remove('active', 'border-indigo-500', 'text-indigo-400'));
+                btn.classList.add('active', 'border-indigo-500', 'text-indigo-400');
+                state.pattern = btn.dataset.val;
+                updateUI();
+            });
+
+            document.getElementById('toggle-grid').onclick = () => {
+                state.showGrid = !state.showGrid;
+                updateUI();
+            };
+
+            els.downloadBtn.onclick = () => {
+                const link = document.createElement('a');
+                link.download = `tile_${state.pattern}_${state.tileSize}.png`;
+                link.href = els.tilePreview.src;
+                link.click();
+            };
+
+            // Init Dummy Image for visualization
+            const dummy = () => {
+                const c = document.createElement('canvas');
+                c.width = 200; c.height = 200;
+                const x = c.getContext('2d');
+                x.fillStyle = '#6366f1';
+                x.beginPath(); x.moveTo(100,20); x.lineTo(180,180); x.lineTo(20,180); x.closePath(); x.fill();
+                x.fillStyle = '#f43f5e';
+                x.fillRect(80, 80, 40, 40);
+                const i = new Image();
+                i.onload = () => { state.sourceImg = i; updateUI(); };
+                i.src = c.toDataURL();
+            };
+            dummy();
+        });
+    </script>
+</body>
+</html>
